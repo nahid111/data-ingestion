@@ -1,0 +1,140 @@
+{% extends "appbuilder/base.html" %}
+
+{% block head_css %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{url_for('static',filename='loader.css')}}"/>
+{% endblock %}
+
+{% block content %}
+  <div class="jumbotron content">
+    <h1>Fetch and Save</h1>
+    <p>
+      Recover some raw data from
+      <a href="https://query.wikidata.org/">wikidata</a> about movies that had
+      been released after 2013 and have imdb-id
+    </p>
+    <hr />
+    <div class="row">
+        <div class="col-md-12">
+            <p>To get started click the blue button and start fetching data.</p>
+        </div>
+    </div>
+    <div class="row">
+      <div class="col-md-4">
+        <button
+          type="button"
+          class="btn btn-primary btn-lg btn-block"
+          id="fetchBtn"
+        >
+          Fetch to file
+        </button>
+      </div>
+      <div class="col-md-4">
+        <button
+          type="button"
+          class="btn btn-success btn-lg btn-block"
+          id="ingestBtn"
+          disabled
+        >
+          Ingest in DB
+        </button>
+      </div>
+      <div class="col-md-4"></div>
+    </div>
+  </div>
+  
+  <div class="row text-center">
+    <div class="col-md-6 col-md-offset-3">
+      <div class="alert alert-danger" id="ajaxError" style="display: none;">
+      </div>
+    </div>
+  </div>
+  
+  <div class="row text-center">
+    <div class="col-md-6 col-md-offset-3">
+      <div class="alert alert-info" id="fetchSuccess" style="display: none;">
+        Successfully fetched data from
+        <a href="https://query.wikidata.org/">wikidata</a> and saved to file.
+        <br />Now hit the ingest button.
+      </div>
+    </div>
+  </div>
+  
+  <div class="row text-center">
+    <div class="col-md-6 col-md-offset-3">
+      <div class="alert alert-success" id="ingestSuccess" style="display: none;">
+        Successfully ingested data into DB.
+        <a href="/moviesview/list/">Take a look</a>.
+      </div>
+    </div>
+  </div>
+  
+  <div class="row text-center loader" style="display: none">
+    <div id="loader"></div>
+    <br/><br/><br/><br/>
+    <h3>This will take a few minutes. Please wait...</h3>
+  </div>
+  
+  
+{% endblock %}
+
+
+{% block tail_js %}
+    {{ super() }}
+    <script>
+        function toggleLoader(){
+            $(".loader").toggle();
+        };
+
+        $(document).ready(function () {
+
+            $("#fetchBtn").click(function () {
+                $("#fetchSuccess").hide();
+                $("#ingestSuccess").hide();
+                $("#fetchBtn").prop('disabled', true);
+                $("#ingestBtn").prop('disabled', true);
+                $("#ajaxError").hide();
+                toggleLoader();
+                $.ajax({
+                    url: "/api/v1/fetchapi/fetch",
+                    success: function (result) {
+                        $("#fetchSuccess").show();
+                        $("#ingestBtn").prop('disabled', false);
+                    },
+                    error: function (result) {
+                        $("#ajaxError").text("Error "+result.status+", "+result.statusText);
+                        $("#ajaxError").show();
+                    },
+                    complete: function (result) {
+                        toggleLoader();
+                        $("#fetchBtn").prop('disabled', false);
+                    }
+                });
+            });
+
+            $("#ingestBtn").click(function () {
+                $("#ingestSuccess").hide();
+                $("#fetchBtn").prop('disabled', true);
+                $("#ingestBtn").prop('disabled', true);
+                $("#ajaxError").hide();
+                toggleLoader();
+                $.ajax({
+                    url: "/api/v1/ingestapi/ingest",
+                    success: function (result) {
+                        $("#ingestSuccess").show();
+                    },
+                    error: function (result) {
+                        $("#ajaxError").text("Error "+result.status+", "+result.statusText);
+                        $("#ajaxError").show();
+                    },
+                    complete: function (result) {
+                        toggleLoader();
+                        $("#fetchBtn").prop('disabled', false);
+                        $("#ingestBtn").prop('disabled', false);
+                    }
+                });
+            });
+
+        });
+    </script>
+{% endblock %}
